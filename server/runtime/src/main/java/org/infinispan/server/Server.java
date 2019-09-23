@@ -108,6 +108,7 @@ public class Server implements ServerManagement {
    private final TimeService timeService;
    private final File serverRoot;
    private final File serverConf;
+   private final File serverLib;
    private final long startTime;
    private final Properties properties;
    private ExitHandler exitHandler = new DefaultExitHandler();
@@ -165,9 +166,8 @@ public class Server implements ServerManagement {
       properties.putIfAbsent(INFINISPAN_CLUSTER_STACK, DEFAULT_CLUSTER_STACK);
 
       this.serverConf = new File(properties.getProperty(INFINISPAN_SERVER_CONFIG_PATH));
-
+      this.serverLib = new File(serverRoot, DEFAULT_SERVER_LIB);
       //SecurityActions.addSecurityProvider(new WildFlyElytronProvider());
-
 
       // Register only the providers that matter to us
       SecurityActions.addSecurityProvider(WildFlyElytronHttpBasicProvider.getInstance());
@@ -317,6 +317,10 @@ public class Server implements ServerManagement {
 
    public File getServerRoot() {
       return serverRoot;
+   }
+
+   public File getServerLib() {
+      return serverLib;
    }
 
    public Map<String, DefaultCacheManager> getCacheManagers() {

@@ -17,11 +17,16 @@ import javax.management.remote.JMXServiceURL;
 import org.infinispan.commons.util.Version;
 import org.infinispan.test.Exceptions;
 import org.infinispan.util.logging.LogFactory;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
+import org.testcontainers.utility.MountableFile;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectContainerResponse;
@@ -77,6 +82,7 @@ public class ContainerInfinispanServerDriver extends InfinispanServerDriver {
                         .copy("build", INFINISPAN_SERVER_HOME)
                         .copy("test", INFINISPAN_SERVER_HOME + "/server")
                         .copy("src/test/resources/bin", INFINISPAN_SERVER_HOME + "/bin")
+                        .copy(artifact(), INFINISPAN_SERVER_HOME + "/lib")
                         .workDir(INFINISPAN_SERVER_HOME)
                         .cmd(
                               "bin/server.sh",
@@ -132,6 +138,11 @@ public class ContainerInfinispanServerDriver extends InfinispanServerDriver {
    }
 
    @Override
+   public File getServerLib(int server) {
+      return null;
+   }
+
+   @Override
    public InetSocketAddress getServerAddress(int server, int port) {
       GenericContainer container = containers.get(server);
       InspectContainerResponse containerInfo = container.getContainerInfo();
@@ -172,4 +183,22 @@ public class ContainerInfinispanServerDriver extends InfinispanServerDriver {
          return jmxConnector.getMBeanServerConnection();
       });
    }
+
+   private String artifact() {
+      String[] driverProperty = System.getProperty("org.infinispan.test.server.jdbc.drivers", configuration.artifacts())
+            .replaceAll("\\s+", "")
+            .split(",");
+      JavaArchive[] archives = Maven.resolver().resolve(driverProperty).withoutTransitivity().as(JavaArchive.class);
+
+      JavaArchive jar = ShrinkWrap.create(JavaArchive.class);
+      for (JavaArchive file : archives) {
+         jar.merge(file);
+      }
+
+      String customPackage = String.format("%s/custom-package.jar", System.getProperty("java.io.tmpdir"));
+      jar.as(ZipExporter.class).exportTo(new File(customPackage), true);
+      return customPackage;
+   }
+
+
 }

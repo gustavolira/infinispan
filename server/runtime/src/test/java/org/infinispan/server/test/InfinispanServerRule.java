@@ -1,10 +1,14 @@
 package org.infinispan.server.test;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
+import org.apache.commons.io.FileUtils;
 import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.client.rest.RestClient;
@@ -38,6 +42,7 @@ public class InfinispanServerRule implements TestRule {
    public static final Log log = LogFactory.getLog(InfinispanServerRule.class);
    private final InfinispanServerTestConfiguration configuration;
    private final InfinispanServerDriver serverDriver;
+   private static final String H2_DRIVER = "com.h2database:h2:1.4.198";
 
    public InfinispanServerRule(InfinispanServerTestConfiguration configuration) {
       this.configuration = configuration;
@@ -80,6 +85,7 @@ public class InfinispanServerRule implements TestRule {
    }
 
    private void before(String name) {
+//      addArtifacts();
    }
 
    private void after(String name) {

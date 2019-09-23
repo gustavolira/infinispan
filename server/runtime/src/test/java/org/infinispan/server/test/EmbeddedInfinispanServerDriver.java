@@ -71,6 +71,11 @@ public class EmbeddedInfinispanServerDriver extends InfinispanServerDriver {
    }
 
    @Override
+   public File getServerLib(int server) {
+      return servers.get(server).getServerLib();
+   }
+
+   @Override
    public InetSocketAddress getServerAddress(int server, int port) {
       return new InetSocketAddress("localhost", port + server * OFFSET_FACTOR);
    }

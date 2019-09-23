@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyPair;
@@ -35,6 +36,7 @@ import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.security.AuthorizationPermission;
 import org.infinispan.server.Server;
 import org.infinispan.test.TestingUtil;
+import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 import org.wildfly.security.x500.cert.BasicConstraintsExtension;
 import org.wildfly.security.x500.cert.SelfSignedX509CertificateAndSigningKey;
 import org.wildfly.security.x500.cert.X509CertificateBuilder;
@@ -90,6 +92,7 @@ public abstract class InfinispanServerDriver {
       createUserFile("default", true);
       createKeyStores();
       InfinispanServerRule.log.infof("Starting server %s", name);
+
       start(name, rootDir, configurationFilePath.getFileName().toString());
       InfinispanServerRule.log.infof("Started server %s", name);
       status = ComponentStatus.RUNNING;
@@ -277,6 +280,12 @@ public abstract class InfinispanServerDriver {
    public void applyTrustStore(ConfigurationBuilder builder, String certificateName) {
       builder.security().ssl().trustStoreFileName(getCertificateFile(certificateName).getAbsolutePath()).trustStorePassword(KEY_PASSWORD.toCharArray());
    }
+
+   /**
+    * Returns the server root path of each instance
+    * @param server
+    */
+   public abstract File getServerLib(int server);
 
    /**
     * Returns an InetSocketAddress for connecting to a specific port on a specific server. The implementation will need
