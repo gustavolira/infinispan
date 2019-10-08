@@ -7,9 +7,9 @@ package org.infinispan.persistence.jdbc;
  * @since 4.1
  */
 public enum DatabaseType {
-   MARIA_DB, MYSQL, POSTGRES, DERBY, HSQL, H2, SQLITE,
+   MARIA_DB, MYSQL, MARIADB, POSTGRES, DERBY, HSQL, H2, SQLITE,
    DB2, DB2_390,
    INFORMIX, INTERBASE, FIREBIRD,
    SQL_SERVER, ACCESS,
-   ORACLE, SYBASE;
+   ORACLE, ORACLE_XE, SYBASE;
 }

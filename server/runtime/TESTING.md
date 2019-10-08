@@ -116,7 +116,41 @@ The following is a list of properties which affect the build:
 
 * `org.infinispan.test.server.baseImageName` the base image to use for the server. Defaults to `jboss/base-jdk:11`.
 * `org.infinispan.test.server.driver`  the driver to use, `EMBEDDED` or `CONTAINER`. Defaults to the `EMBEDDED` driver.
+* `org.infinispan.test.server.extension.libs` locates artifact defined by G:A:V, you can pass a list of libraries (comma separeted) to be copied to the server. Only needed for container mode.
+* `org.infinispan.test.server.jdbc.database` database name to be used during persistence tests.
+* `org.infinispan.test.server.jdbc.database.url` JDBC URL. If it's a external database
+* `org.infinispan.test.server.jdbc.database.username` database username. If it's a external database
+* `org.infinispan.test.server.jdbc.database.password` database password. If it's a external database
+* `org.infinispan.test.server.jdbc.database.driverClass` database jdbc driver name. If it's a external database
+* `org.infinispan.test.server.jdbc.image.tag` Docker image version to be used during persistence tests.
+
 
 ## JMX
 
 Servers started by the testsuite drivers will have JMX enabled and tests can obtain MBeans by going through the driver API.
+
+## JDBC Cache Store
+
+###### H2
+`mvn -pl server/runtime test -Dtest=PersistenceIT -Pcontainer`
+
+###### MYSQL
+`mvn -pl server/runtime test -Dtest=PersistenceIT -Pcontainer -Dorg.infinispan.test.server.extension.libs=mysql:mysql-connector-java:8.0.15 -Dorg.infinispan.test.server.jdbc.database=mysql`
+
+###### POSTGRES
+`mvn -pl server/runtime test -Dtest=PersistenceIT -Pcontainer -Dorg.infinispan.test.server.extension.libs=org.postgresql:postgresql:42.2.8 -Dorg.infinispan.test.server.jdbc.database=postgres`
+
+###### DB2
+`mvn -pl server/runtime test -Dtest=PersistenceIT -Pcontainer -Dorg.infinispan.test.server.extension.libs=com.ibm.db2:jcc:11.1.4.4 -Dorg.infinispan.test.server.jdbc.database=db2`
+
+###### MARIADB
+`mvn -pl server/runtime test -Dtest=PersistenceIT -Pcontainer -Dorg.infinispan.test.server.extension.libs=org.mariadb.jdbc:mariadb-java-client:2.4.4 -Dorg.infinispan.test.server.jdbc.database=mariadb`
+
+###### SQL SERVER
+`mvn -pl server/runtime test -Dtest=PersistenceIT -Pcontainer -Dorg.infinispan.test.server.extension.libs=com.microsoft.sqlserver:mssql-jdbc:7.4.1.jre11 -Dorg.infinispan.test.server.jdbc.database=sql_server`
+
+###### ORACLE XE
+`mvn -pl server/runtime test -Dtest=PersistenceIT -Pcontainer -Dorg.infinispan.test.server.extension.libs=com.oracle:ojdbc6:12.1.0.1-atlassian-hosted -Dorg.infinispan.test.server.jdbc.database=oracle_xe`
+
+###### EXTERNAL DATABASE
+`mvn -pl server/runtime test -Dtest=PersistenceIT  -Dinfinispan.test.checkThreadLeaks=false -Pcontainer -Dorg.infinispan.test.server.jdbc.database.url=jdbc:mysql://localhost:3306/dbname -Dorg.infinispan.test.server.jdbc.database.username=test -Dorg.infinispan.test.server.jdbc.database.password=123456 -Dorg.infinispan.test.server.jdbc.database.driverClass=com.mysql.cj.jdbc.Driver`

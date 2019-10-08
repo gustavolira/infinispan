@@ -17,7 +17,12 @@ import javax.management.remote.JMXServiceURL;
 import org.infinispan.commons.util.Version;
 import org.infinispan.test.Exceptions;
 import org.infinispan.util.logging.LogFactory;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -37,6 +42,7 @@ import com.github.dockerjava.api.model.Network;
 public class ContainerInfinispanServerDriver extends InfinispanServerDriver {
    public static final String INFINISPAN_SERVER_HOME = "/opt/infinispan";
    private final List<GenericContainer> containers;
+   private static final String EXTRA_LIBS = "org.infinispan.test.server.extension.libs";
 
    protected ContainerInfinispanServerDriver(InfinispanServerTestConfiguration configuration) {
       super(
@@ -122,6 +128,10 @@ public class ContainerInfinispanServerDriver extends InfinispanServerDriver {
                   container.withFileSystemBind(hostDir.getAbsolutePath(), containerDir);
                   hostDir.setWritable(true, false);
                });
+
+         container.addFileSystemBind(artifact().getAbsolutePath(),
+               INFINISPAN_SERVER_HOME + "/lib/custom-package.jar",
+               BindMode.READ_ONLY);
          containers.add(container);
          container
                .withLogConsumer(new JBossLoggingConsumer(LogFactory.getLogger(name)).withPrefix(Integer.toString(i)))
@@ -180,5 +190,21 @@ public class ContainerInfinispanServerDriver extends InfinispanServerDriver {
          JMXConnector jmxConnector = JMXConnectorFactory.connect(url);
          return jmxConnector.getMBeanServerConnection();
       });
+   }
+
+   //Create single jar with all extra libs
+   private File artifact() {
+      String[] driverProperty = System.getProperty(EXTRA_LIBS, configuration.artifacts())
+            .replaceAll("\\s+", "")
+            .split(",");
+      JavaArchive[] archives = Maven.resolver().resolve(driverProperty).withoutTransitivity().as(JavaArchive.class);
+      JavaArchive jar = ShrinkWrap.create(JavaArchive.class);
+      for (JavaArchive file : archives) {
+         jar.merge(file);
+      }
+      File customPackage = new File("/tmp/custom-package.jar");
+      customPackage.setWritable(true, false);
+      jar.as(ZipExporter.class).exportTo(customPackage, true);
+      return customPackage;
    }
 }
