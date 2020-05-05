@@ -34,7 +34,21 @@ public class TestSystemPropertyNames {
     */
    public static final String INFINISPAN_TEST_SERVER_CONTAINER_TIMEOUT_SECONDS = "org.infinispan.test.server.container.timeoutSeconds";
    /**
+    * The timeout in seconds to wait for the container driver servers to start
+    */
+   public static final String INFINISPAN_TEST_SERVER_FORKED_TIMEOUT_SECONDS = "org.infinispan.test.server.container.timeoutSeconds";
+   /**
     * The path to a local installation of the server
     */
    public static final String INFINISPAN_TEST_SERVER_DIR = "org.infinispan.test.server.dir";
+
+   /**
+    * Path to the server configuration file. Will override the default configuration set on the test. Only for FORKED
+    */
+   public static String INFINISPAN_SERVER_CONFIGURATION = System.getProperty("org.infinispan.test.server.configuration");
+
+   /**
+    * Specifies a comma-separated list to server home path. Only for FORKED
+    */
+   public static final String INFINISPAN_SERVER_HOME = System.getProperty("org.infinispan.test.server.home");
 }

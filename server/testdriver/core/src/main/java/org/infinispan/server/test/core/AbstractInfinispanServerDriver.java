@@ -5,8 +5,10 @@ import java.io.FileOutputStream;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -22,6 +24,7 @@ import java.util.function.Consumer;
 
 import javax.security.auth.x500.X500Principal;
 
+import org.infinispan.client.hotrod.RemoteCacheManager;
 import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.commons.test.CommonsTestingUtil;
 import org.infinispan.commons.test.Exceptions;
@@ -30,6 +33,10 @@ import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.security.AuthorizationPermission;
 import org.infinispan.server.Server;
 import org.infinispan.server.security.UserTool;
+import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.shrinkwrap.resolver.api.maven.Maven;
+import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact;
 import org.wildfly.security.x500.cert.BasicConstraintsExtension;
 import org.wildfly.security.x500.cert.SelfSignedX509CertificateAndSigningKey;
 import org.wildfly.security.x500.cert.X509CertificateBuilder;
@@ -161,6 +168,29 @@ public abstract class AbstractInfinispanServerDriver implements InfinispanServer
       UserTool.main("-b", "-s", rootDir.getAbsolutePath(), "-r", realm, "-u", "writer", "-p", "somePassword", "-g", "WriterRole");
       UserTool.main("-b", "-s", rootDir.getAbsolutePath(), "-r", realm, "-u", "reader", "-p", "password", "-g", "ReaderRole");
       UserTool.main("-b", "-s", rootDir.getAbsolutePath(), "-r", realm, "-u", "supervisor", "-p", "lessStrongPassword", "-g", "SupervisorRole");
+   }
+
+   protected void copyArtifactsToUserLibDir(File libDir) {
+      // Maven artifacts
+      String propertyArtifacts = configuration.properties().getProperty(TestSystemPropertyNames.INFINISPAN_TEST_SERVER_EXTRA_LIBS);
+      String[] artifacts = propertyArtifacts != null ? propertyArtifacts.replaceAll("\\s+", "").split(",") : configuration.mavenArtifacts();
+      if (artifacts != null && artifacts.length > 0) {
+         MavenResolvedArtifact[] archives = Maven.resolver().resolve(artifacts).withoutTransitivity().asResolvedArtifact();
+         for (MavenResolvedArtifact archive : archives) {
+            Exceptions.unchecked(() -> {
+               Path source = archive.asFile().toPath();
+               Files.copy(source, libDir.toPath().resolve(source.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+            });
+         }
+      }
+      // Supplied artifacts
+      if (configuration.archives() != null) {
+         for (JavaArchive artifact : configuration.archives()) {
+            File jar = libDir.toPath().resolve(artifact.getName()).toFile();
+            jar.setWritable(true, false);
+            artifact.as(ZipExporter.class).exportTo(jar, true);
+         }
+      }
    }
 
    @Override
@@ -302,5 +332,11 @@ public abstract class AbstractInfinispanServerDriver implements InfinispanServer
    @Override
    public void pause(int server) {
    }
+
+   @Override
+   public RemoteCacheManager createRemoteCacheManager(ConfigurationBuilder builder) {
+      return new RemoteCacheManager(builder.build());
+   }
+
 
 }
