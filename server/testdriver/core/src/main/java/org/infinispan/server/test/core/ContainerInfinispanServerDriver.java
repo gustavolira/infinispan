@@ -12,7 +12,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,10 +36,6 @@ import org.infinispan.commons.util.StringPropertyReplacer;
 import org.infinispan.commons.util.Version;
 import org.infinispan.server.Server;
 import org.infinispan.util.logging.LogFactory;
-import org.jboss.shrinkwrap.api.exporter.ZipExporter;
-import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.jboss.shrinkwrap.resolver.api.maven.MavenResolvedArtifact;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.builder.ImageFromDockerfile;
@@ -240,29 +235,6 @@ public class ContainerInfinispanServerDriver extends AbstractInfinispanServerDri
       containers[i] = new InfinispanGenericContainer(container);
       log.infof("Started container %d", i);
       return container;
-   }
-
-   private void copyArtifactsToUserLibDir(File libDir) {
-      // Maven artifacts
-      String propertyArtifacts = configuration.properties().getProperty(TestSystemPropertyNames.INFINISPAN_TEST_SERVER_EXTRA_LIBS);
-      String[] artifacts = propertyArtifacts != null ? propertyArtifacts.replaceAll("\\s+", "").split(",") : configuration.mavenArtifacts();
-      if (artifacts != null && artifacts.length > 0) {
-         MavenResolvedArtifact[] archives = Maven.resolver().resolve(artifacts).withoutTransitivity().asResolvedArtifact();
-         for (MavenResolvedArtifact archive : archives) {
-            Exceptions.unchecked(() -> {
-               Path source = archive.asFile().toPath();
-               Files.copy(source, libDir.toPath().resolve(source.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-            });
-         }
-      }
-      // Supplied artifacts
-      if (configuration.archives() != null) {
-         for (JavaArchive artifact : configuration.archives()) {
-            File jar = libDir.toPath().resolve(artifact.getName()).toFile();
-            jar.setWritable(true, false);
-            artifact.as(ZipExporter.class).exportTo(jar, true);
-         }
-      }
    }
 
    @Override

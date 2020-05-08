@@ -22,6 +22,7 @@ The test driver can run Infinispan Servers in different modes:
 
 * **EMBEDDED**: all servers are run in the same JVM as the test
 * **CONTAINER**: the servers are executed inside a container
+* **FORKED**: the servers are executed in a different JVM process
 
 The **CONTAINER** driver can either use a user-supplied image, a published one or a local server installation.
 
@@ -119,6 +120,9 @@ The following is a list of properties which affect the build:
 * `org.infinispan.server.test.database.<type>.password` password to use for a specific database type
 * `org.infinispan.server.test.database.<type>.address` address to use for a specific database type
 * `org.infinispan.server.test.database.<type>.port` port to use for a specific database type
+* `org.infinispan.test.server.container.timeoutSeconds` the amount of time in seconds to wait for a server start/stop operation when using the `FORKED` driver
+* `org.infinispan.test.server.configuration` Path to the server configuration file. Will override the default configuration set on the test. Only for `FORKED` driver
+* `org.infinispan.test.server.home` Specifies a comma-separated list to server home path. Only for `FORKED` driver
 
 ## JMX
 

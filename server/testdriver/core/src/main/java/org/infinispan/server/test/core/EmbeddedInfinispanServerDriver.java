@@ -14,8 +14,6 @@ import java.util.stream.Collectors;
 
 import javax.management.MBeanServerConnection;
 
-import org.infinispan.client.hotrod.RemoteCacheManager;
-import org.infinispan.client.hotrod.configuration.ConfigurationBuilder;
 import org.infinispan.commons.util.StringPropertyReplacer;
 import org.infinispan.manager.CacheContainer;
 import org.infinispan.manager.DefaultCacheManager;
@@ -137,11 +135,6 @@ public class EmbeddedInfinispanServerDriver extends AbstractInfinispanServerDriv
    public MBeanServerConnection getJmxConnection(int server) {
       DefaultCacheManager cacheManager = servers.get(server).getCacheManagers().values().iterator().next();
       return cacheManager.getCacheManagerConfiguration().jmx().mbeanServerLookup().getMBeanServer();
-   }
-
-   @Override
-   public RemoteCacheManager createRemoteCacheManager(ConfigurationBuilder builder) {
-      return new RemoteCacheManager(builder.build());
    }
 
    @Override
