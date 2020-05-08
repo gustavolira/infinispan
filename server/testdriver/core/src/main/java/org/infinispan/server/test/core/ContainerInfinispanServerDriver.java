@@ -272,9 +272,9 @@ public class ContainerInfinispanServerDriver extends AbstractInfinispanServerDri
       }
 
       GenericContainer container = new GenericContainer<>(image)
-         .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withMounts(
-            Arrays.asList(new Mount().withSource(this.volumes[i]).withTarget(serverPath()).withType(MountType.VOLUME))
-         ));
+            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withMounts(
+                  Arrays.asList(new Mount().withSource(this.volumes[i]).withTarget(serverPath()).withType(MountType.VOLUME))
+            ));
       // Process any enhancers
       container.withLogConsumer(new JBossLoggingConsumer(LogFactory.getLogger(name)).withPrefix(Integer.toString(i)));
       for (Consumer<OutputFrame> consumer : logConsumers)

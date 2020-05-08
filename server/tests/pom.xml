@@ -20,6 +20,7 @@
       <defaultExcludedTestGroup/>
       <org.infinispan.test.server.dir>${project.basedir}/../runtime/target/${infinispan.brand.prefix}-server-${infinispan.brand.version}</org.infinispan.test.server.dir>
       <org.infinispan.test.server.lib.dir>${project.build.directory}/testlibs</org.infinispan.test.server.lib.dir>
+      <version.infinispan.backward.compatibility.test>9.4.18.Final-redhat-00001</version.infinispan.backward.compatibility.test>
    </properties>
 
    <dependencies>
@@ -144,6 +145,42 @@
                   <artifactId>maven-surefire-plugin</artifactId>
                   <configuration>
                      <argLine>${container.argLine}</argLine>
+                  </configuration>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+      <profile>
+         <id>backward-compatibility</id>
+         <activation>
+            <activeByDefault>false</activeByDefault>
+         </activation>
+         <dependencies>
+            <dependency>
+               <groupId>org.infinispan</groupId>
+               <artifactId>infinispan-client-hotrod</artifactId>
+               <version>${version.infinispan.backward.compatibility.test}</version>
+            </dependency>
+            <dependency>
+               <groupId>org.infinispan</groupId>
+               <artifactId>infinispan-commons</artifactId>
+               <version>${version.infinispan.backward.compatibility.test}</version>
+            </dependency>
+         </dependencies>
+         <build>
+            <plugins>
+               <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-compiler-plugin</artifactId>
+                  <configuration>
+                     <testExcludes>
+                        <testExclude>org/infinispan/server/test/core/**</testExclude>
+                        <testExclude>org/infinispan/server/functional/**</testExclude>
+                        <testExclude>org/infinispan/server/security/**</testExclude>
+                        <testExclude>org/infinispan/server/persistence/**</testExclude>
+                        <testExclude>org/infinispan/server/extensions/**</testExclude>
+                        <testExclude>org/infinispan/server/resilience/**</testExclude>
+                     </testExcludes>
                   </configuration>
                </plugin>
             </plugins>
