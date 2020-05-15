@@ -1,0 +1,5 @@
+<infinispan>
+    <cache-container>
+        <replicated-cache name="replicated-cache" />
+    </cache-container>
+</infinispan>
