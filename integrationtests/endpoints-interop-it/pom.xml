@@ -13,6 +13,10 @@
    <name>Integration tests - Endpoints interop</name>
    <description>Integration tests for endpoints and in-VM interoperability</description>
 
+   <properties>
+      <version.infinispan.backward.compatibility.test>9.4.19.Final</version.infinispan.backward.compatibility.test>
+   </properties>
+
    <dependencies>
       <dependency>
          <groupId>org.infinispan</groupId>
@@ -136,4 +140,118 @@
          </plugin>
       </plugins>
    </build>
+
+   <profiles>
+      <profile>
+         <id>backward-compatibility</id>
+         <activation>
+            <activeByDefault>false</activeByDefault>
+         </activation>
+         <dependencies>
+            <dependency>
+               <groupId>org.infinispan</groupId>
+               <artifactId>infinispan-client-hotrod</artifactId>
+               <version>${version.infinispan.backward.compatibility.test}</version>
+            </dependency>
+            <dependency>
+               <groupId>org.infinispan</groupId>
+               <artifactId>infinispan-commons</artifactId>
+               <version>${version.infinispan.backward.compatibility.test}</version>
+            </dependency>
+            <dependency>
+               <groupId>org.infinispan</groupId>
+               <artifactId>infinispan-core</artifactId>
+               <version>${version.infinispan.backward.compatibility.test}</version>
+            </dependency>
+         </dependencies>
+         <build>
+            <plugins>
+               <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-compiler-plugin</artifactId>
+                  <version>3.8.1</version>
+                  <configuration>
+                     <testIncludes>
+                        <testInclude>org/infinispan/it/endpoints/backwardcompatibility/**</testInclude>
+                     </testIncludes>
+                  </configuration>
+               </plugin>
+
+               <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-surefire-plugin</artifactId>
+                  <configuration>
+                     <skipTests>true</skipTests>
+                  </configuration>
+               </plugin>
+
+
+               <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-failsafe-plugin</artifactId>
+                  <version>3.0.0-M4</version>
+                  <configuration>
+                     <forkCount>1</forkCount>
+                     <reuseForks>false</reuseForks>
+                  </configuration>
+                  <executions>
+                     <execution>
+                        <phase>integration-test</phase>
+                        <goals>
+                           <goal>integration-test</goal>
+                        </goals>
+                     </execution>
+                  </executions>
+               </plugin>
+               <plugin>
+                  <artifactId>maven-antrun-plugin</artifactId>
+                  <version>3.0.0</version>
+                  <executions>
+                     <execution>
+                        <id>infinispan-server-startup</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                           <goal>run</goal>
+                        </goals>
+                        <configuration>
+                           <skip>${skipTests}</skip>
+                           <target>
+                              <ant antfile="${basedir}/src/test/resources/ant/infinispan-server.xml" target="kill-server">
+                                 <property name="hotrod.port" value="11222" />
+                              </ant>
+                              <ant antfile="${basedir}/src/test/resources/ant/infinispan-server.xml" target="start-server">
+                                 <property name="server.dist" value="${jdg.home}" />
+                                 <property name="port.offset" value="0" />
+                                 <property name="hotrod.port" value="11222" />
+                                 <property name="infinispan.node.name" value="node1" />
+                                 <property name="infinispan.config.file" value="infinispan.xml" />
+                                 <property name="active.getbulk.compatibility" value="-Dinfinisan.enable.hotrod.bulk.really.really.for.the.last.time=true" />
+                                 <property name="security.realm" value='security-realm="default"' />
+                                 <property name="JAVA_HOME" value="${JAVA_HOME}" />
+                              </ant>
+                           </target>
+                        </configuration>
+                     </execution>
+                     <execution>
+                        <id>infinispan-server-shutdown</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                           <goal>run</goal>
+                        </goals>
+                        <configuration>
+                           <skip>${skipTests}</skip>
+                           <target>
+                              <ant antfile="${basedir}/src/test/resources/ant/infinispan-server.xml" target="kill-server">
+                                 <property name="hotrod.port" value="11222" />
+                              </ant>
+                           </target>
+                        </configuration>
+                     </execution>
+                  </executions>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+   </profiles>
+
 </project>

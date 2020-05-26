@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="testsuite">
+    <target name="-check.skipped">
+        <condition property="tests.skipped">
+            <or>
+                <isset property="skipTests"/>
+                <isset property="maven.test.skip"/>
+                <isset property="maven.test.skip.exec"/>
+            </or>
+        </condition>
+    </target>
+
+    <target name="create-distro" depends="-check.skipped" unless="tests.skipped">
+        <echo message="Creating test server distro at ${server.dist}"/>
+        <echo message="Using distribution ${server.build.dist}"/>
+        <copy todir="${server.dist}">
+            <fileset dir="${server.build.dist}"/>
+        </copy>
+        <!-- It happens when you do not specify namespaces in the XSLT templates for the newly added nodes
+             then the IBM jdk transformation is adding empty namespace there - not possible to influence this
+             behaviour by any environmental property - this is a bit workaround for it -->
+        <echo message="Removing empty xmlns attributes (xmlns='') which IBM JDK could produce"/>
+        <replace dir="target" value="">
+            <include name="server/conf/*.xml"/>
+            <replacetoken><![CDATA[xmlns=""]]></replacetoken>
+        </replace>
+    </target>
+
+    <target name="start-server" depends="-check.skipped" unless="tests.skipped">
+        <echo> Starting Infinispan server:</echo>
+        <echo> Server home: ${server.dist}</echo>
+        <echo> Configuration: ${infinispan.config.file}</echo>
+        <echo> JVM: ${JAVA_HOME}</echo>
+
+        <echo>Disabling the server security</echo>
+        <exec executable="sed" dir="${server.dist}/server/conf">
+            <arg value="-i"/>
+            <arg value="-e"/>
+            <arg value="s/security-realm=&quot;default&quot;//"/>
+            <arg value="${infinispan.config.file}" />
+        </exec>
+
+        <exec dir="${server.dist}/bin" executable="chmod" osfamily="unix">
+            <arg value="+x"/>
+            <arg value="../bin"/>
+            <arg value="server.sh"/>
+        </exec>
+
+        <exec executable="${server.dist}/bin/server.sh" osfamily="unix" spawn="true">
+            <arg line="-c ${infinispan.config.file}"/>
+            <env key="JAVA_OPTS" value="-Dinfinispan.socket.binding.port-offset=${port.offset} -Dinfinispan.node.name=${infinispan.node.name} ${active.getbulk.compatibility}" />
+            <env key="ISPN_HOME" value="${server.dist}"/>
+        </exec>
+        <exec executable="${server.dist}/bin/server.bat" osfamily="windows" spawn="true">
+            <arg line="-c ${infinispan.config.file}"/>
+            <env key="JAVA_OPTS" value="-infinispan.socket.binding.port-offset=${port.offset} -infinispan.node.name=${infinispan.node.name} -{active.getbulk.compatibility}" />
+            <env key="ISPN_HOME" value="${server.dist}"/>
+            <env key="STANDALONE_CONF" value="notfound.bat"/>
+        </exec>
+
+        <waitfor maxwait="120" maxwaitunit="second" checkevery="1" checkeveryunit="second">
+            <and>
+                <socket server="127.0.0.1" port="${hotrod.port}"/>
+            </and>
+        </waitfor>
+        <fail message="Server did not start">
+            <condition>
+                <not>
+                    <socket server="127.0.0.1" port="${hotrod.port}"/>
+                </not>
+            </condition>
+        </fail>
+        <echo message="Infinispan server started"/>
+    </target>
+
+    <macrodef name="checkoutput">
+        <attribute name="run-property"/>
+        <attribute name="exitcode-property"/>
+        <attribute name="output-property"/>
+
+        <sequential>
+            <echo>@{run-property}: ${@{output-property}} --- ${@{exitcode-property}}</echo>
+            <condition property="@{run-property}" value="true" else="false">
+                <and>
+                    <equals arg1="${@{exitcode-property}}" arg2="0"/>
+                    <isset property="@{output-property}"/>
+                    <not>
+                        <equals arg1="${@{output-property}}" arg2=""/>
+                    </not>
+                </and>
+            </condition>
+        </sequential>
+    </macrodef>
+    <target name="-do.kinit" depends="-check.skipped" unless="tests.skipped">
+        <exec executable="bash" outputproperty="ps.pid" resultproperty="ps.result" failifexecutionfails="false"
+              failonerror="false" osfamily="unix">
+            <arg value="-c"/>
+            <!-- Use \- to exclude the awk command -->
+            <arg value="ps -eaf | awk '/org.infinispan.server.Bootstrap/ {print $$2;}'"/>
+            <redirector>
+                <outputfilterchain>
+                    <prefixlines prefix=" "/>
+                    <striplinebreaks/>
+                    <trim/>
+                </outputfilterchain>
+            </redirector>
+        </exec>
+        <checkoutput run-property="run.ps" exitcode-property="ps.result" output-property="ps.pid"/>
+
+        <exec executable="bash" outputproperty="lsof.pid" resultproperty="lsof.result" failifexecutionfails="false" failonerror="false" osfamily="unix">
+            <arg value="-c"/>
+            <arg value="lsof -t -i TCP:${hotrod.port}"/>
+            <redirector>
+                <outputfilterchain>
+                    <prefixlines prefix=" "/>
+                    <striplinebreaks/>
+                    <trim/>
+                </outputfilterchain>
+            </redirector>
+        </exec>
+        <checkoutput run-property="run.lsof" exitcode-property="lsof.result" output-property="lsof.pid"/>
+
+        <!--jps/jstat are not supported in IBM JDK we should add failifexecutionfails parameter to not fail when jps command does not exist -->
+        <exec executable="/usr/bin/jps" outputproperty="jps.pid" resultproperty="jps.result"
+              failifexecutionfails="false" failonerror="false">
+            <redirector>
+                <outputfilterchain>
+                    <linecontains>
+                        <contains value="org.infinispan.server.Bootstrap"/>
+                    </linecontains>
+                    <tokenfilter>
+                        <replaceregex pattern=" .*" replace=" "/>
+                    </tokenfilter>
+                    <striplinebreaks/>
+                </outputfilterchain>
+            </redirector>
+        </exec>
+        <checkoutput run-property="run.jps" exitcode-property="jps.result" output-property="jps.pid"/>
+
+        <exec executable="netstat" outputproperty="cmd.pid" resultproperty="cmd.result" failifexecutionfails="false"
+              failonerror="false" osfamily="windows">
+            <arg value="-aon"/>
+            <redirector>
+                <outputfilterchain>
+                    <linecontains>
+                        <contains value="LISTENING"/>
+                        <contains value=":${hotrod.port}"/>
+                    </linecontains>
+                    <tokenfilter>
+                        <replaceregex pattern=".*LISTENING([ \t]+)([0-9]+)" replace="\2" flags="gi"/>
+                        <ignoreblank/>
+                    </tokenfilter>
+                    <striplinebreaks/>
+                </outputfilterchain>
+            </redirector>
+        </exec>
+        <checkoutput run-property="run.cmd" exitcode-property="cmd.result" output-property="cmd.pid"/>
+
+        <fail message="Build requires either ps/jps/lsof (UNIX) or netstat (WINDOWS) in order to stop running servers">
+            <condition>
+                <not>
+                    <or>
+                        <equals arg1="${ps.result}" arg2="0"/>
+                        <equals arg1="${lsof.result}" arg2="0"/>
+                        <equals arg1="${jps.result}" arg2="0"/>
+                        <equals arg1="${cmd.result}" arg2="0"/>
+                    </or>
+                </not>
+            </condition>
+        </fail>
+    </target>
+
+    <target name="-do.ps" if="${run.ps}">
+        <exec executable="kill" osfamily="unix">
+            <arg line="-9 ${ps.pid}"/>
+        </exec>
+    </target>
+
+    <target name="-do.lsof" if="${run.lsof}">
+        <exec executable="kill" osfamily="unix">
+            <arg line="-9 ${lsof.pid}"/>
+        </exec>
+    </target>
+
+    <target name="-do.jps" if="${run.jps}">
+        <exec executable="kill" osfamily="unix">
+            <arg line="-9 ${jps.pid}"/>
+        </exec>
+    </target>
+
+    <target name="-do.cmd" if="${run.cmd}">
+        <exec executable="taskkill" osfamily="windows">
+            <arg line="/F /T /PID ${cmd.pid}"/>
+        </exec>
+    </target>
+
+    <target name="kill-server" depends="-do.kinit, -do.lsof, -do.cmd"/>
+</project>

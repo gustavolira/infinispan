@@ -448,6 +448,9 @@ class CacheRequestProcessor extends BaseRequestProcessor {
    }
 
    void bulkGet(HotRodHeader header, Subject subject, int size) {
+      if(System.getProperty("infinisan.enable.hotrod.bulk.really.really.for.the.last.time") == null) {
+         throw new UnsupportedOperationException();
+      }
       AdvancedCache<byte[], byte[]> cache = server.cache(server.getCacheInfo(header), header, subject);
       executor.execute(() -> bulkGetInternal(header, cache, size));
    }
