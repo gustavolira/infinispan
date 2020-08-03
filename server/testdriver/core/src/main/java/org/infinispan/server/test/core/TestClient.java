@@ -112,4 +112,7 @@ public class TestClient {
    public MemcachedClient getMemcachedClient() {
       return registerResource(testServer.newMemcachedClient()).getClient();
    }
+   public String getSite() {
+      return testServer.configuration.site();
+   }
 }

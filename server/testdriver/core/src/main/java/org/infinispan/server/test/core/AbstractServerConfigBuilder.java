@@ -40,6 +40,11 @@ public abstract class AbstractServerConfigBuilder<T extends AbstractServerConfig
       }
    }
 
+   protected AbstractServerConfigBuilder(String siteName, String configurationFile) {
+      this(configurationFile, false);
+      this.siteName = siteName;
+   }
+
    protected InfinispanServerTestConfiguration createServerTestConfiguration() {
       return new InfinispanServerTestConfiguration(configurationFile, numServers, runMode, this.properties, mavenArtifacts,
                   archives, jmx, parallelStartup, defaultFile, listeners, siteName, portOffset);
@@ -100,6 +105,10 @@ public abstract class AbstractServerConfigBuilder<T extends AbstractServerConfig
    public T site(String site) {
       this.siteName = site;
       return (T) this;
+   }
+
+   public String getSite() {
+      return siteName;
    }
 
    public T portOffset(int port) {
